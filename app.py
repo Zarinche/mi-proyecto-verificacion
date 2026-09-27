@@ -12,7 +12,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Configuración de Google Drive
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 SERVICE_ACCOUNT_FILE = 'credentials.json'  # El archivo JSON que descargas de Google Cloud
-PARENT_FOLDER_ID = 'AQUÍ_PEGAS_EL_ID_DE_TU_CARPETA_DE_DRIVE'  # ID de la carpeta de destino en Drive
+PARENT_FOLDER_ID = 'https://drive.google.com/drive/folders/186TLc4p3hLdRlMKTVXHrX1Wkrp7J151M?usp=drive_link'  # ID de la carpeta de destino en Drive
 
 # Simulación de base de datos en memoria (puedes reemplazarlo por SQLite o Google Sheets más adelante)
 registros_usuarios = []

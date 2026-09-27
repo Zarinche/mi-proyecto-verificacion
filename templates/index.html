@@ -20,7 +20,7 @@
                    Ir a Instagram ↗
                 </a>
             </div>
-            <p id="timer-status" class="text-xs text-yellow-400 text-center font-medium hidden">⏳ Verificando tiempo fuera de la página... Vuelve en al menos 1 minuto.</p>
+            <p id="timer-status" class="text-xs text-yellow-400 text-center font-medium hidden">⏳ Cronómetro iniciado. Debes pasar al menos 1 minuto fuera.</p>
         </div>
 
         <!-- PASO 2: Subir Foto (Bloqueado inicialmente) -->
@@ -44,36 +44,37 @@
         const responseMsg = document.getElementById('response-msg');
 
         let leftTime = 0;
-        let timerInterval = null;
         let clickedInstagram = false;
 
-        // Detectar cuando el usuario hace clic para ir a Instagram
+        // Al hacer clic, guardamos el momento exacto de salida
         instaLink.addEventListener('click', () => {
             clickedInstagram = true;
             leftTime = Date.now();
             timerStatus.classList.remove('hidden');
         });
 
-        // Detectar si el usuario salió y volvió a la pestaña
+        // Verificamos el tiempo transcurrido únicamente cuando el usuario regresa a la pestaña
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && clickedInstagram) {
-                const elapsedTime = (Date.now() - leftTime) / 1000; // en segundos
+                const elapsedTime = (Date.now() - leftTime) / 1000; // Duración en segundos
                 
-                // Si pasó más de 1 minuto (60 segundos)
+                // Condición estricta: Solo si pasa 1 minuto (60 segundos) o más
                 if (elapsedTime >= 60) {
-                    timerStatus.textContent = "¡Tiempo cumplido con éxito!";
+                    timerStatus.textContent = "¡Cumpliste con las tareas! Ya puedes subir tu foto.";
                     timerStatus.classList.remove('text-yellow-400');
                     timerStatus.classList.add('text-emerald-400');
                     
-                    // Desbloquear Paso 2
+                    // Desbloqueamos el paso 2
                     step2.classList.remove('opacity-50', 'pointer-events-none');
                 } else {
-                    timerStatus.textContent = `⚠️ Solo estuviste ${Math.floor(elapsedTime)} segundos fuera. Debes estar al menos 1 minuto.`;
+                    // Si vuelve antes de tiempo, se mantiene bloqueado y se le advierte
+                    timerStatus.textContent = "⚠️ Aún no ha terminado la tarea/s. Vuelve a Instagram y completa las tareas.";
+                    timerStatus.classList.add('text-yellow-400');
                 }
             }
         });
 
-        // Enviar archivo al servidor
+        // Envío del formulario al backend para subir a Drive
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(uploadForm);

@@ -1,13 +1,38 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Simulación de base de datos en memoria (puedes conectarlo a SQLite o Google Sheets luego)
+# Configuración de Google Drive
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SERVICE_ACCOUNT_FILE = 'credentials.json'  # El archivo JSON que descargas de Google Cloud
+PARENT_FOLDER_ID = 'AQUÍ_PEGAS_EL_ID_DE_TU_CARPETA_DE_DRIVE'  # ID de la carpeta de destino en Drive
+
+# Simulación de base de datos en memoria (puedes reemplazarlo por SQLite o Google Sheets más adelante)
 registros_usuarios = []
+
+def subir_a_drive(file_path, file_name):
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=creds)
+
+    file_metadata = {
+        'name': file_name,
+        'parents': [PARENT_FOLDER_ID]
+    }
+    media = MediaFileUpload(file_path, resumable=True)
+    file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id'
+    ).execute()
+    return file.get('id')
 
 @app.route('/')
 def index():
@@ -16,7 +41,7 @@ def index():
     target = request.args.get('for', 'General')
     goal = request.args.get('goal', 'Interacción')
     
-    # Registramos que el usuario entró
+    # Registramos que el usuario entró al enlace
     registro = {
         "usuario": user,
         "para": target,
@@ -40,12 +65,19 @@ def upload_file():
     
     if file:
         filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{user}_{filename}")
+        unique_filename = f"{user}_{filename}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(filepath)
         
-        # Aquí puedes integrar la lógica para subir 'filepath' a tu Google Drive usando la API de Google.
+        try:
+            # Subimos el archivo directamente a Google Drive
+            subir_a_drive(filepath, unique_filename)
+            # Limpiamos el archivo local del servidor para liberar espacio
+            os.remove(filepath)
+        except Exception as e:
+            return jsonify({"error": f"Error al subir a Drive: {str(e)}"}), 500
         
-        return jsonify({"mensaje": "¡Archivo subido y verificado con éxito!"}), 200
+        return jsonify({"mensaje": "¡Archivo subido a Google Drive con éxito!"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

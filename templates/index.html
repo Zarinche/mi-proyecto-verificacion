@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación de Tarea - Instagram</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-800 p-8 rounded-2xl shadow-xl max-w-md w-full border border-slate-700">
+        <h1 class="text-2xl font-bold mb-2 text-indigo-400">Panel de Validación</h1>
+        <p class="text-sm text-slate-300 mb-6">Hola <span class="font-semibold text-white">{{ user }}</span>, estás completando una acción para <span class="font-semibold text-white">{{ target }}</span> (<span class="italic text-indigo-300">{{ goal }}</span>).</p>
+
+        <!-- PASO 1: Ir a Instagram -->
+        <div id="step-1" class="space-y-4">
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                <p class="text-sm mb-3">1. Haz clic en el botón para ir a Instagram, dale <strong>Like</strong> y <strong>Repost</strong> a la publicación.</p>
+                <a id="insta-link" href="https://instagram.com" target="_blank" 
+                   class="block text-center bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 font-medium py-2.5 px-4 rounded-xl transition">
+                   Ir a Instagram ↗
+                </a>
+            </div>
+            <p id="timer-status" class="text-xs text-yellow-400 text-center font-medium hidden">⏳ Verificando tiempo fuera de la página... Vuelve en al menos 1 minuto.</p>
+        </div>
+
+        <!-- PASO 2: Subir Foto (Bloqueado inicialmente) -->
+        <div id="step-2" class="mt-6 pt-6 border-t border-slate-700 opacity-50 pointer-events-none transition-all duration-500">
+            <p class="text-sm mb-2 font-semibold text-emerald-400">2. Sube la captura de pantalla como evidencia:</p>
+            <form id="upload-form" class="space-y-4">
+                <input type="file" name="foto" id="foto-input" accept="image/*" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                <button type="submit" id="submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 font-medium py-2.5 px-4 rounded-xl transition">
+                    Enviar a Google Drive
+                </button>
+            </form>
+        </div>
+        <p id="response-msg" class="text-sm mt-4 text-center font-medium"></p>
+    </div>
+
+    <script>
+        const instaLink = document.getElementById('insta-link');
+        const timerStatus = document.getElementById('timer-status');
+        const step2 = document.getElementById('step-2');
+        const uploadForm = document.getElementById('upload-form');
+        const responseMsg = document.getElementById('response-msg');
+
+        let leftTime = 0;
+        let timerInterval = null;
+        let clickedInstagram = false;
+
+        // Detectar cuando el usuario hace clic para ir a Instagram
+        instaLink.addEventListener('click', () => {
+            clickedInstagram = true;
+            leftTime = Date.now();
+            timerStatus.classList.remove('hidden');
+        });
+
+        // Detectar si el usuario salió y volvió a la pestaña
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && clickedInstagram) {
+                const elapsedTime = (Date.now() - leftTime) / 1000; // en segundos
+                
+                // Si pasó más de 1 minuto (60 segundos)
+                if (elapsedTime >= 60) {
+                    timerStatus.textContent = "¡Tiempo cumplido con éxito!";
+                    timerStatus.classList.remove('text-yellow-400');
+                    timerStatus.classList.add('text-emerald-400');
+                    
+                    // Desbloquear Paso 2
+                    step2.classList.remove('opacity-50', 'pointer-events-none');
+                } else {
+                    timerStatus.textContent = `⚠️ Solo estuviste ${Math.floor(elapsedTime)} segundos fuera. Debes estar al menos 1 minuto.`;
+                }
+            }
+        });
+
+        // Enviar archivo al servidor
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+            formData.append('user', "{{ user }}");
+
+            responseMsg.textContent = "Subiendo archivo...";
+            responseMsg.className = "text-sm mt-4 text-center text-yellow-400";
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    responseMsg.textContent = data.mensaje;
+                    responseMsg.className = "text-sm mt-4 text-center text-emerald-400";
+                    uploadForm.reset();
+                } else {
+                    responseMsg.textContent = data.error;
+                    responseMsg.className = "text-sm mt-4 text-center text-red-400";
+                }
+            } catch (err) {
+                responseMsg.textContent = "Error de conexión al servidor.";
+                responseMsg.className = "text-sm mt-4 text-center text-red-400";
+            }
+        });
+    </script>
+</body>
+</html>
